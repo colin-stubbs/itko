@@ -8,6 +8,8 @@ An operating instance using this log implementation can be found at `https://ct2
 
 This log is operated on a best effort basis, but it is being monitored and should be pretty reliable.
 
+**This log is currently not accepting new certificate submissions for cost reasons, but can still be queried.**
+
 | Config          | Value                                                                                  |
 | --------------- | -------------------------------------------------------------------------------------- |
 | Log ID          | `yLkilxtwEtRI1qd7fACK5qViNNxRkxAzwlUNQjiVeZo=`                                         |
