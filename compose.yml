@@ -1,0 +1,48 @@
+services:
+  itko:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itko/itko:latest
+    restart: unless-stopped
+    environment:
+      # Optional: Timezone
+      - TZ=${TZ:-UTC}
+      - DEBUG=${DEBUG:-}
+      - CONSUL_BIND_ADDRESS=${CONSUL_BIND_ADDRESS:-127.0.0.1}
+      - CONSUL_BIND_INTERFACE=${CONSUL_BIND_INTERFACE:-lo}
+      - CONSUL_CLIENT_ADDRESS=${CONSUL_CLIENT_ADDRESS:-127.0.0.1}
+      - CONSUL_CLIENT_INTERFACE=${CONSUL_CLIENT_INTERFACE:-lo}
+      - CONSUL_LOCAL_CONFIG=${CONSUL_LOCAL_CONFIG:-{"datacenter":"dev","server":true,"enable_debug":false}}
+      - GEN_TEST_CERTS=${GEN_TEST_CERTS:-}
+      - LOAD_TEST_DATA=${LOAD_TEST_DATA:-false}
+      - ITKO_ROOT_DIRECTORY=${ITKO_ROOT_DIRECTORY:-/itko/ct/storage}
+      - ITKO_KEY_PATH=${ITKO_KEY_PATH:-/itko/testdata/ct-http-server.privkey.plaintext.pem}
+      - ITKO_LOG_NAME=${ITKO_LOG_NAME:-testlog}
+      - ITKO_LOG_ID=${ITKO_LOG_ID:-lrviNpCI/wLGL5VTfK25b8cOdbP0YA7tGoQak5jST9o=}
+      - ITKO_LOG_PUBLIC_KEY=${ITKO_LOG_PUBLIC_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEB/hRr6qMVoOQMbeA49Ya9y82BnHs3Tu+fjZvDRwcYAt/9Z//5SRJNFbySxBfvwgf+Q7PNbWKioswClS3vx1NuQ==}
+      - ITKO_LOG_URL=${ITKO_LOG_URL:-http://itko/}
+      - ITKO_MASK_SIZE=${ITKO_MASK_SIZE:-5}
+      - ITKO_FLUSH_MS=${ITKO_FLUSH_MS:-50}
+      - ITKO_SUBMIT_LISTEN_ADDRESS=${ITKO_SUBMIT_LISTEN_ADDRESS:-127.0.0.1}
+      - ITKO_SUBMIT_LISTEN_PORT=${ITKO_SUBMIT_LISTEN_PORT:-3030}
+      - ITKO_MONITOR_LISTEN_ADDRESS=${ITKO_MONITOR_LISTEN_ADDRESS:-127.0.0.1}
+      - ITKO_MONITOR_LISTEN_PORT=${ITKO_MONITOR_LISTEN_PORT:-3031}
+    ports:
+      - "80:80" # Caddy exposed combined RFC6962 submission and monitoring API's, as well as static tile file serving.
+    #volumes:
+      # use local folder if desired
+      #- ./ct:/itko/ct
+      # use volume if desired, uncomment volumes at end of file.
+      #- data:/itko/ct
+      # custom consul config/data if desired
+      #- ./consul/config:/consul/config
+      #- ./consul/data:/consul/data
+    healthcheck:
+      test: curl --silent --fail http://localhost:80/ct/v1/get-sth | grep '"tree_size":' || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+#volumes:
+#  data:
