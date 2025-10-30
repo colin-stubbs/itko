@@ -320,32 +320,39 @@ test -f ${ITKO_ROOT_DIRECTORY}/monitor-static.json || echo "${MONITOR_STATIC_JSO
 test -f ${ITKO_ROOT_DIRECTORY}/monitor-combined.json || echo "${MONITOR_COMBINED_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-combined.json
 
 test -f ${CADDY_CONFIG_FILE} || echo "{
-        log default {
-                output file /var/log/caddy_access.log
-                format json
-        }
-        auto_https off
+  log default {
+    output file /var/log/caddy.log
+    format json
+  }
+  auto_https off
 
-        servers :${CADDY_LISTEN_PORT} {
-                name http
-        }
-        default_bind ${CADDY_LISTEN_ADDRESS}
+  servers :${CADDY_LISTEN_PORT} {
+    name http
+  }
+  default_bind ${CADDY_LISTEN_ADDRESS}
 }
 
 :${CADDY_LISTEN_PORT} {
-        @blocked {
-          path /int/*
-        }
-        handle @blocked {
-          respond \"Access denied\" 403
-        }
-        reverse_proxy /ct/v1/add-* http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}
-        reverse_proxy /ct/v1/get-* http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT}
-        route /monitor-*.json {
-          header Content-Type application/json
-        }
-        root * ${ITKO_ROOT_DIRECTORY}
-        file_server
+  @blocked {
+    path /int/*
+  }
+  handle @blocked {
+    respond \"Access denied\" 403
+  }
+  reverse_proxy /ct/v1/add-* http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}
+  reverse_proxy /ct/v1/get-* http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT}
+  route /monitor-*.json {
+    header Content-Type application/json
+  }
+  root * ${ITKO_ROOT_DIRECTORY}
+  file_server
+  log {
+    output file /var/log/access.log {
+      roll_size 10mb
+      roll_keep 5
+      roll_keep_for 1h
+    }
+  }
 }" > ${CADDY_CONFIG_FILE} && caddy fmt --overwrite --config ${CADDY_CONFIG_FILE}
 
 caddy run --adapter ${CADDY_CONFIG_ADAPTER} --config ${CADDY_CONFIG_FILE} --watch
