@@ -38,3 +38,5 @@ dependabot.yml
 bin/
 pkg/
 fixerupper/
+
+generated/
