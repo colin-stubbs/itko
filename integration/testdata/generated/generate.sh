@@ -2,7 +2,7 @@
 
 # WARNING: This script assumes work should occur in whatever directory it exists within.
 SCRIPT_START_DIR=$(pwd)
-SCRIPT_EXIST_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+SCRIPT_EXIST_DIR=$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd )
 
 cd "${SCRIPT_EXIST_DIR}"
 

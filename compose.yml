@@ -3,13 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: itko/itko:latest
+    image: colinstubbs/itko:latest
     restart: unless-stopped
     environment:
       # Optional: Timezone
-      #- TZ=${TZ:-UTC}
+      - TZ=${TZ:-UTC}
       # Debug mode, set to true to enable more verbose output from the entrypoint script.
-      #- DEBUG=${DEBUG:-}
+      - DEBUG=${DEBUG:-}
       # Consul configuration, refer to /usr/local/bin/consul-entrypoint.sh or https://hub.docker.com/_/consul/
       - CONSUL_BIND_ADDRESS=${CONSUL_BIND_ADDRESS:-127.0.0.1}
       - CONSUL_BIND_INTERFACE=${CONSUL_BIND_INTERFACE:-lo}
@@ -27,44 +27,59 @@ services:
       - ITKO_LOG_NAME=${ITKO_LOG_NAME:-testlog}
       - ITKO_LOG_ID=${ITKO_LOG_ID:-lrviNpCI/wLGL5VTfK25b8cOdbP0YA7tGoQak5jST9o=}
       - ITKO_LOG_PUBLIC_KEY=${ITKO_LOG_PUBLIC_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEB/hRr6qMVoOQMbeA49Ya9y82BnHs3Tu+fjZvDRwcYAt/9Z//5SRJNFbySxBfvwgf+Q7PNbWKioswClS3vx1NuQ==}
-      - ITKO_LOG_SUBMISSION_URL=${ITKO_LOG_SUBMISSION_URL:-http://itko/}
-      - ITKO_LOG_MONITORING_URL=${ITKO_LOG_MONITORING_URL:-http://itko/}
+      - ITKO_LOG_SUBMISSION_URL=${ITKO_LOG_SUBMISSION_URL:-http://localhost/}
+      - ITKO_LOG_MONITORING_URL=${ITKO_LOG_MONITORING_URL:-http://localhost/}
       - ITKO_MASK_SIZE=${ITKO_MASK_SIZE:-5}
       - ITKO_FLUSH_MS=${ITKO_FLUSH_MS:-50}
-      - ITKO_SUBMIT_LISTEN_ADDRESS=${ITKO_SUBMIT_LISTEN_ADDRESS:-127.0.0.1}
+      - ITKO_SUBMIT_LISTEN_ADDRESS=${ITKO_SUBMIT_LISTEN_ADDRESS:-0.0.0.0}
       - ITKO_SUBMIT_LISTEN_PORT=${ITKO_SUBMIT_LISTEN_PORT:-3030}
-      - ITKO_MONITOR_LISTEN_ADDRESS=${ITKO_MONITOR_LISTEN_ADDRESS:-127.0.0.1}
+      - ITKO_MONITOR_LISTEN_ADDRESS=${ITKO_MONITOR_LISTEN_ADDRESS:-0.0.0.0}
       - ITKO_MONITOR_LISTEN_PORT=${ITKO_MONITOR_LISTEN_PORT:-3031}
-      # Caddy configuration,
-      - CADDY_LISTEN_PORT=${CADDY_LISTEN_PORT:-80}
-      - CADDY_LISTEN_ADDRESS=${CADDY_LISTEN_ADDRESS:-0.0.0.0}
-      - CADDY_CONFIG_FILE=${CADDY_CONFIG_FILE:-/itko/ct/Caddyfile}
-      - CADDY_CONFIG_ADAPTER=${CADDY_CONFIG_ADAPTER:-caddyfile}
     ports:
-      - "80:80" # Caddy, by default combined RFC6962 submission and monitoring API's, as well as static tile file serving.
-      #- "3030:3030" # Itko submission API
-      #- "3031:3031" # Itko monitoring API
-    #volumes:
-      # use local folder if desired
-      #- ./ct:/itko/ct
-      # use volume if desired, uncomment volumes at end of file.
-      #- data:/itko/ct
+      - "3030:3030" # Itko submission API
+      - "3031:3031" # Itko monitoring API
+    volumes:
+      # stores ct log content, e.g. static tiles etc to be served by caddy]\
+      - ctlog_data:/itko/ct/storage
+      # custom test data and/or custom generated script/content
+      #- ./integration/testdata:/itko/testdata
+      #- ./integration/testdata/generated:/itko/testdata/generated
       # custom consul config/data if desired
       #- ./consul/config:/consul/config
       #- ./consul/data:/consul/data
       # persistent logs if desired
       #- ./logs:/var/log
       #- logs:/var/log
+
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    environment:
+      - CADDY_LISTEN_ADDRESS=${CADDY_LISTEN_ADDRESS:-0.0.0.0}
+      - CADDY_LISTEN_PORT=${CADDY_LISTEN_PORT:-80}
+      - CADDY_CONFIG_FILE=${CADDY_CONFIG_FILE:-/etc/caddy/Caddyfile}
+      - CADDY_CONFIG_ADAPTER=${CADDY_CONFIG_ADAPTER:-caddyfile}
+      - ITKO_LOG_NAME=${ITKO_LOG_NAME:-testlog}
+    ports:
+      - "80:80"
+    volumes:
+      - ctlog_data:/usr/share/caddy
+      - ./example/Caddyfile:/etc/caddy/Caddyfile
+      # persistent logs if desired
+      #- ./logs:/var/log
+      #- logs:/var/log
     healthcheck:
-      # healthcheck probes Caddy and checks for the presence /ct/v1/get-sth which may be proxied to itko-monitor or a raw file (if you're using a custom config that's only serving files.)
-      test: curl --silent --fail http://localhost:80/ct/v1/get-sth | grep '"tree_size":' || exit 1
+      test: curl --silent --fail http://localhost/checkpoint | grep '^- ${ITKO_LOG_NAME:-testlog} ' || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      itko:
+        condition: service_healthy
 
-# volume mounts if desired
-#volumes:
-#  data:
+volumes:
+  ctlog_data:
+# other volume mounts if desired
 #  logs:
 #  consul_config:
 #  consul_data:

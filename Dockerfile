@@ -10,7 +10,7 @@ RUN go build -v -o ./itko-submit ./cmd/itko-submit && \
 # Final image
 FROM hashicorp/consul:latest
 
-RUN apk add make caddy && \
+RUN apk add make supervisor && \
   mkdir -p /itko/ct/storage/ct/v1 && \
   adduser -D -s /sbin/nologin -h /itko itko && \
   mv /usr/local/bin/docker-entrypoint.sh /usr/local/bin/consul-entrypoint.sh
@@ -19,6 +19,8 @@ WORKDIR /itko
 
 COPY --from=builder --chmod=755 /tmp/build/itko-submit /itko/itko-submit
 COPY --from=builder --chmod=755 /tmp/build/itko-monitor /itko/itko-monitor
+COPY example/supervisor.d/ /etc/supervisor.d
+COPY integration/testdata/ /itko/testdata
 
 USER root:root
 
@@ -26,6 +28,8 @@ EXPOSE 80
 
 COPY itko-entrypoint.sh /usr/local/bin/itko-entrypoint.sh
 COPY ./integration/testdata/ /itko/testdata
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT}/ct/v1/get-sth | grep '"tree_size":' || exit 1
 
 ENTRYPOINT ["/usr/local/bin/itko-entrypoint.sh"]
 
