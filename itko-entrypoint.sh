@@ -86,11 +86,11 @@ curl ${CURL_EXTRA_ARGS} -X PUT -H 'Content-Type: application/json' -d "@/itko/ct
 # itko will fix get-sth file contents provided it starts as an empty JSON file
 test -s ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth || echo -n '{}' > ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth
 
-# add test roots if the script that defines how to do this exists and is executable.
-test -x /itko/testdata/add_roots.sh && /itko/testdata/add_roots.sh
-
 # run generate script to create extra test certs if it exists and is executable.
 test -x /itko/testdata/generated/generate.sh && /itko/testdata/generated/generate.sh
+
+# add test roots if the script that defines how to do this exists and is executable.
+test -x /itko/testdata/add_roots.sh && /itko/testdata/add_roots.sh
 
 # start itko-submit
 # NOTE: should probably transition to watchdog/supervisord?
