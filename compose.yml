@@ -69,10 +69,11 @@ services:
       #- ./logs:/var/log
       #- logs:/var/log
     healthcheck:
-      test: curl --silent --fail http://localhost/checkpoint | grep '^- ${ITKO_LOG_NAME:-testlog} ' || exit 1
-      interval: 30s
-      timeout: 10s
+      test: wget -q -O - "http://127.0.0.1:${CADDY_LISTEN_PORT:-80}/checkpoint" | grep -E "^${ITKO_LOG_NAME:-testlog}$" 2>/dev/null || exit 1
+      interval: 5s
+      timeout: 2s
       retries: 3
+      start_period: 5s
     depends_on:
       itko:
         condition: service_healthy
