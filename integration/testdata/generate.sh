@@ -122,15 +122,17 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   fi
 
   for n in `seq $((${EXISTING_CHAINS}+1)) ${GEN_TEST_CERTS}`; do
-    echo "### Creating test subleaf ${n} certificate..."
     test -f test-subleaf-${n}.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-subleaf-${n}.privkey.pem 1>/dev/null 2>&1
     test -f test-subleaf-${n}.csr.pem || openssl req -new -sha256 -key test-subleaf-${n}.privkey.pem -subj "/C=AU/ST=Queensland/O=Good Roots Work/OU=Eng/CN=test-subleaf-${n}.example.com" -out test-subleaf-${n}.csr.pem 1>/dev/null 2>&1
     test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
-    echo "### Adding test subleaf ${n} certificate chain to ${COMPACT_CHAINS_NDJSON}..."
     cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}\n/' -e 's/-+BEGIN CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE/",/g' >> "${COMPACT_CHAINS_NDJSON}"
     # cleanup to minimise how disk usage/inode usage, we only really need the chains
     rm -f test-subleaf-${n}.pem test-subleaf-${n}.csr.pem test-subleaf-${n}.privkey.pem
   done
+
+  echo "### ${GEN_TEST_CERTS} additional test leaf certificates created and added to ${COMPACT_CHAINS_NDJSON}..."
+  ls -ldh "${COMPACT_CHAINS_NDJSON}"
+  wc -l "${COMPACT_CHAINS_NDJSON}"
 else
   echo "### ERROR: GEN_TEST_CERTS=${GEN_TEST_CERTS} which we can't understand"
 fi
