@@ -45,18 +45,10 @@ if [ ${LOAD_TEST_DATA} = "true" ] ; then
   done
 
   # attempt to log issued certs to CT log
-  for i in `find . -type f -name \*.chain.json`; do
-    echo -n "### Adding chain ${i} to log..."
-    curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d "@${i}" "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-chain" && echo -n "... OK!"
-    echo
-  done
+  find . -type f -name \*.chain.json -exec curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d '@{}' "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-chain" \;
 
   # attempt to log pre-certs to CT log
-  for i in `find . -type f -name \*.pre-chain.json`; do
-    echo -n "### Adding pre-chain ${i} to log..."
-    curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d "@${i}" "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-pre-chain" && echo -n "... OK!"
-    echo
-  done
+  find . -type f -name \*.pre-chain.json -exec curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d '@{}' "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-pre-chain" \;
 
   cd "${SCRIPT_START_DIR}"
 fi
