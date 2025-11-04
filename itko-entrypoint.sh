@@ -31,7 +31,7 @@ export ITKO_SUBMIT_LISTEN_PORT=${ITKO_SUBMIT_LISTEN_PORT:-3030}
 export ITKO_MONITOR_LISTEN_ADDRESS=${ITKO_MONITOR_LISTEN_ADDRESS:-0.0.0.0}
 export ITKO_MONITOR_LISTEN_PORT=${ITKO_MONITOR_LISTEN_PORT:-3031}
 
-# used in our generated monitor*.json files
+# used locally in script for our generated monitor*.json files
 # The current date/time in simple UTC zoned RFC3339 format, used in our generated monitor.json files if we're auto-generating them.
 NOW=`date -u -Iseconds | sed -r 's/\+00:00/Z/'`
 # Used in our generated monitor.json files if we're auto-generating them, e.g. a long time ago in a galaxy far, far away...
@@ -52,11 +52,13 @@ else
   CURL_EXTRA_ARGS="${CURL_EXTRA_ARGS} --silent"
 fi
 
+## Now, ensure all dependencies such as folders and config files already exist or are created appropriately...
+
+# this is static, though you can control where Itko will create tiles/etc and the storage location for the web server root using ${ITKO_ROOT_DIRECTORY}
+mkdir -p /itko/ct
+
 # ensure essential directory structure will exist in case volume mounts have created an empty folder.
 mkdir -p ${ITKO_ROOT_DIRECTORY}/ct/v1
-
-# start consul because Itko depends upon it. Refer to /usr/local/bin/consul-entrypoint.sh or https://hub.docker.com/_/consul/ for more details.
-nohup /usr/local/bin/consul-entrypoint.sh consul agent -server -bootstrap-expect=1 -data-dir=/consul/data 1>/var/log/consul_stdout.log 2>/var/log/consul_stderr.log &
 
 # create default config if one does not already exist
 test -f /itko/ct/config.json || echo '{
@@ -70,45 +72,8 @@ test -f /itko/ct/config.json || echo '{
   "FlushMs":'${ITKO_FLUSH_MS}'
 }' > /itko/ct/config.json
 
-# ensure consul is started before we try to blat the config into it...
-echo -n "### Waiting for Consul to start..."
-while ! curl -s http://127.0.0.1:8500/v1/status/leader >/dev/null 2>&1; do
-  sleep 1
-  echo -n "."
-done
-echo "OK!"
-echo "### Consul started, loading Itko config as KV /itko/config..."
-
-# setup KV in consul (but give it a little more time to start so it can lose anything...)
-sleep 4
-curl ${CURL_EXTRA_ARGS} -X PUT -H 'Content-Type: application/json' -d "@/itko/ct/config.json" "http://127.0.0.1:8500/v1/kv/${ITKO_KV_PATH}/config" 1>/dev/null 2>&1
-
 # itko will fix get-sth file contents provided it starts as an empty JSON file
 test -s ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth || echo -n '{}' > ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth
-
-# run generate script to create extra test certs if it exists and is executable.
-test -x /itko/testdata/generated/generate.sh && /itko/testdata/generated/generate.sh
-
-# add test roots if the script that defines how to do this exists and is executable.
-test -x /itko/testdata/add_roots.sh && /itko/testdata/add_roots.sh
-
-# start itko-submit
-# NOTE: should probably transition to watchdog/supervisord?
-nohup /itko/itko-submit -getentries_metrics -kv-path "${ITKO_KV_PATH}" -listen-address "${ITKO_SUBMIT_LISTEN_ADDRESS}:${ITKO_SUBMIT_LISTEN_PORT}" 1>/var/log/itko-submit_stdout.log 2>/var/log/itko-submit_stderr.log &
-
-echo -n "### Waiting for itko-submit to start and respond to HTTP requests..."
-while ! curl -s http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ >/dev/null 2>&1; do
-  sleep 1
-  echo -n "."
-done
-echo "OK!"
-
-echo "### itko-submit started and responding to HTTP requests..."
-
-if [ ${LOAD_TEST_DATA} = "true" ] && [ -x "/itko/testdata/add_leaves.sh" ]; then
-  echo "### Loading test data..."
-  /itko/testdata/add_leaves.sh
-fi
 
 # generate monitor.json files, refer to:
 #  1. https://googlechrome.github.io/CertificateTransparency/log_lists.html
@@ -240,13 +205,7 @@ echo "${MONITOR_RFC_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-rfc6962.json
 echo "${MONITOR_STATIC_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-static.json
 echo "${MONITOR_COMBINED_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-combined.json
 
-# start itko-monitor
-# NOTE: should probably transition to watchdog/supervisord?
-/itko/itko-monitor -listen-address ${ITKO_MONITOR_LISTEN_ADDRESS}:${ITKO_MONITOR_LISTEN_PORT} -mask-size ${ITKO_MASK_SIZE} -store-directory ${ITKO_ROOT_DIRECTORY}
-
-# start supervisor - still need to establish how best to coordinate adding roots/test certs will work...
-#supervisord -c /etc/supervisor/supervisord.conf
-
-killall -9 itko-submit itko-monitor consul 2>/dev/null || true
+# start supervisor which will start everything else...
+supervisord --nodaemon --configuration /etc/supervisord.conf
 
 # EOF

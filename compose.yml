@@ -39,6 +39,8 @@ services:
       - "3030:3030" # Itko submission API
       - "3031:3031" # Itko monitoring API
     volumes:
+      - ./example/supervisor.d:/etc/supervisor.d
+      - ./itko-entrypoint.sh:/usr/local/bin/itko-entrypoint.sh
       # stores ct log content, e.g. static tiles etc to be served by caddy]\
       - ctlog_data:/itko/ct/storage
       # custom test data and/or custom generated script/content
@@ -51,8 +53,13 @@ services:
       #- ./logs:/var/log
       #- logs:/var/log
 
+  # caddy is used to front the Itko components and serve static tiles and other file based content.
+  # It also performs rate limiting. 10 requests per second by default, good to have to for realistic dev/testing purposes
+  # It also blocks access to the /int/ path. Because reasons but mostly examples.
   caddy:
-    image: caddy:latest
+    build:
+      context: ./example/caddy/
+    image: colinstubbs/caddy:latest
     restart: unless-stopped
     environment:
       - CADDY_LISTEN_ADDRESS=${CADDY_LISTEN_ADDRESS:-0.0.0.0}
@@ -64,7 +71,7 @@ services:
       - "80:80"
     volumes:
       - ctlog_data:/usr/share/caddy
-      - ./example/Caddyfile:/etc/caddy/Caddyfile
+      - ./example/caddy/Caddyfile:/etc/caddy/Caddyfile
       # persistent logs if desired
       #- ./logs:/var/log
       #- logs:/var/log

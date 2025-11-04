@@ -21,6 +21,7 @@ COPY --from=builder --chmod=755 /tmp/build/itko-submit /itko/itko-submit
 COPY --from=builder --chmod=755 /tmp/build/itko-monitor /itko/itko-monitor
 COPY example/supervisor.d/ /etc/supervisor.d
 COPY integration/testdata/ /itko/testdata
+COPY example/start-itko-submit.sh /itko/start-itko-submit.sh
 
 USER root:root
 
@@ -29,7 +30,7 @@ EXPOSE 80
 COPY itko-entrypoint.sh /usr/local/bin/itko-entrypoint.sh
 COPY ./integration/testdata/ /itko/testdata
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT}/ct/v1/get-sth | grep '"tree_size":' || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=5s CMD curl -f http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT}/ct/v1/get-sth | grep '"tree_size":' || exit 1
 
 ENTRYPOINT ["/usr/local/bin/itko-entrypoint.sh"]
 

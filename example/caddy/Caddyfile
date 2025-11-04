@@ -1,6 +1,6 @@
 {
   log default {
-    output file /var/log/caddy.log
+    output file /var/log/caddy/caddy.log
     format json
   }
   auto_https off
@@ -18,6 +18,16 @@
   handle @blocked {
     respond "Access denied" 403
   }
+
+  rate_limit {
+    zone default {
+      key    {remote_host}
+      events 10
+      window 5s
+    }
+    log_key
+  }
+
   reverse_proxy /ct/v1/add-* http://itko:3030
   reverse_proxy /ct/v1/get-* http://itko:3031
   route /monitor-*.json {
@@ -26,7 +36,7 @@
   root * /usr/share/caddy
   file_server
   log {
-    output file /var/log/access.log {
+    output file /var/log/caddy/access.log {
       roll_size 10mb
       roll_keep 5
       roll_keep_for 1h
