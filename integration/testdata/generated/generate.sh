@@ -9,6 +9,9 @@ cd "${SCRIPT_EXIST_DIR}"
 # sane default
 GEN_TEST_CERTS=${GEN_TEST_CERTS:-10}
 
+# compact ndjson chain file to support very large numbers of certs/chains.
+COMPACT_CHAINS_NDJSON=${COMPACT_CHAINS_NDJSON:-compact.chains.ndjson}
+
 # generate additional test certs if requested
 if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
 
@@ -110,19 +113,23 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   test -f test-int-ca.csr.pem || openssl req -new -sha256 -config int-ca.cfg -key test-int-ca.privkey.pem -out test-int-ca.csr.pem 1>/dev/null 2>&1
   test -f test-int-ca.pem || openssl x509 -req -in test-int-ca.csr.pem -sha256 -extfile fake-ca.cfg -extensions v3_int_ca -CA test-ca.pem -CAkey test-ca.privkey.pem -set_serial 0x53535353 -days 3600 -out test-int-ca.pem 1>/dev/null 2>&1
 
-  for n in `seq 1 ${GEN_TEST_CERTS}`; do
-    if [ ! -s test-subleaf-${n}.chain.json ]; then
-      echo "### Creating test subleaf ${n} certificate..."
-      test -f test-subleaf-${n}.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-subleaf-${n}.privkey.pem 1>/dev/null 2>&1
-      test -f test-subleaf-${n}.csr.pem || openssl req -new -sha256 -key test-subleaf-${n}.privkey.pem -subj "/C=AU/ST=Queensland/O=Good Roots Work/OU=Eng/CN=test-subleaf-${n}.example.com" -out test-subleaf-${n}.csr.pem 1>/dev/null 2>&1
-      test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
-      echo "### Creating test subleaf ${n} certificate chain..."
-      test -s test-subleaf-${n}.chain.json || cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}/' -e 's/-+BEGIN\sCERTIFICATE-+/"/g' -e 's/-+END\sCERTIFICATE-+/"/g' -e 's/-+END\sCERTIFICATE/",/g' > test-subleaf-${n}.chain.json
-      # cleanup to minimise how disk usage/inode usage, we only really need the chain.json file.
-      test -s test-subleaf-${n}.chain.json && rm -f test-subleaf-${n}.pem test-subleaf-${n}.csr.pem test-subleaf-${n}.privkey.pem
-    else
-      echo "### Test subleaf ${n} certificate chain already exists, skipping..."
-    fi
+  touch "${COMPACT_CHAINS_NDJSON}"
+  EXISTING_CHAINS=`wc -l "${COMPACT_CHAINS_NDJSON}" | awk '{print $1}'`
+
+  if [ ${EXISTING_CHAINS} -ge ${GEN_TEST_CERTS} ] ; then
+    echo "### ${COMPACT_CHAINS_NDJSON} already contains ${EXISTING_CHAINS} chains, no addition needed..."
+    exit 0
+  fi
+
+  for n in `seq $((${EXISTING_CHAINS}+1)) ${GEN_TEST_CERTS}`; do
+    echo "### Creating test subleaf ${n} certificate..."
+    test -f test-subleaf-${n}.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-subleaf-${n}.privkey.pem 1>/dev/null 2>&1
+    test -f test-subleaf-${n}.csr.pem || openssl req -new -sha256 -key test-subleaf-${n}.privkey.pem -subj "/C=AU/ST=Queensland/O=Good Roots Work/OU=Eng/CN=test-subleaf-${n}.example.com" -out test-subleaf-${n}.csr.pem 1>/dev/null 2>&1
+    test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
+    echo "### Adding test subleaf ${n} certificate chain to ${COMPACT_CHAINS_NDJSON}..."
+    cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}\n/' -e 's/-+BEGIN CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE/",/g' >> "${COMPACT_CHAINS_NDJSON}"
+    # cleanup to minimise how disk usage/inode usage, we only really need the chains
+    rm -f test-subleaf-${n}.pem test-subleaf-${n}.csr.pem test-subleaf-${n}.privkey.pem
   done
 else
   echo "### ERROR: GEN_TEST_CERTS=${GEN_TEST_CERTS} which we can't understand"
