@@ -205,6 +205,9 @@ echo "${MONITOR_RFC_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-rfc6962.json
 echo "${MONITOR_STATIC_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-static.json
 echo "${MONITOR_COMBINED_JSON}" > ${ITKO_ROOT_DIRECTORY}/monitor-combined.json
 
+# add test to conform to default caddy healthcheck
+echo 'OK' > ${ITKO_ROOT_DIRECTORY}/status
+
 # start supervisor which will start everything else...
 supervisord --nodaemon --configuration /etc/supervisord.conf
 

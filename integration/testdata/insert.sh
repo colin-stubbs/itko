@@ -9,7 +9,7 @@ if [ ${LOAD_TEST_DATA} = "true" ] ; then
 
   # merge existing and test CA's as unique trusted roots. This needs to happen before itko-submit starts.
   cat "${ITKO_ROOT_DIRECTORY}/ct/v1/get-roots" 2>/dev/null | jq --raw-output '.certificates[]' 2>/dev/null > "${TMP_FILE}"
-  cat fake-ca*.cert generated/test-ca.pem 2>/dev/null | tr  -d '\n' | sed -r -E -e 's/-+END CERTIFICATE-+BEGIN CERTIFICATE-+/\n/g' -e 's/-+END CERTIFICATE-+$/\n/' -e 's/-+BEGIN CERTIFICATE-+//' >> "${TMP_FILE}"
+  cat /itko/testdata/fake-ca*.cert /itko/testdata/generated/test-ca.pem 2>/dev/null | tr  -d '\n' | sed -r -E -e 's/-+END CERTIFICATE-+BEGIN CERTIFICATE-+/\n/g' -e 's/-+END CERTIFICATE-+$/\n/' -e 's/-+BEGIN CERTIFICATE-+//' >> "${TMP_FILE}"
 
   # use the combined but unique list of trusted roots to update the CT log trusted roots.
   cat "${TMP_FILE}" | sort -u | jq --raw-input --monochrome-output --compact-output --slurp 'split("\n") | map(select(length > 0)) | {certificates: .}' > "${ITKO_ROOT_DIRECTORY}/ct/v1/get-roots"
