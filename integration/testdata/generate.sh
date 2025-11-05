@@ -10,7 +10,7 @@ cd "${SCRIPT_EXIST_DIR}"
 GEN_TEST_CERTS=${GEN_TEST_CERTS:-10}
 
 # compact ndjson chain file to support very large numbers of certs/chains.
-COMPACT_CHAINS_NDJSON=${COMPACT_CHAINS_NDJSON:-compact.chains.ndjson}
+CERT_CHAINS_NDJSON=${CERT_CHAINS_NDJSON:-compact.chains.ndjson}
 
 # generate additional test certs if requested
 if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
@@ -105,7 +105,7 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   extendedKeyUsage = serverAuth,2.16.840.1.113741.1.2.3
   " > int-ca.cfg
 
-  echo "### Creating ${GEN_TEST_CERTS} additional test leaf certificates..."
+  echo "### Ensuring we a test root CA and intermediate CA..."
   # Create additional fake test root CA and intermediate CA if they do not already exist.
   test -f test-ca.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-ca.privkey.pem 1>/dev/null 2>&1
   test -f test-ca.pem || openssl req -new -x509 -config fake-ca.cfg -set_serial 0x0406cafe -days 3650 -extensions v3_ca -inform pem -key test-ca.privkey.pem -out test-ca.pem 1>/dev/null 2>&1
@@ -113,11 +113,13 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   test -f test-int-ca.csr.pem || openssl req -new -sha256 -config int-ca.cfg -key test-int-ca.privkey.pem -out test-int-ca.csr.pem 1>/dev/null 2>&1
   test -f test-int-ca.pem || openssl x509 -req -in test-int-ca.csr.pem -sha256 -extfile fake-ca.cfg -extensions v3_int_ca -CA test-ca.pem -CAkey test-ca.privkey.pem -set_serial 0x53535353 -days 3600 -out test-int-ca.pem 1>/dev/null 2>&1
 
-  touch "${COMPACT_CHAINS_NDJSON}"
-  EXISTING_CHAINS=`wc -l "${COMPACT_CHAINS_NDJSON}" | awk '{print $1}'`
+  echo "### Ensuring we have at least ${GEN_TEST_CERTS} additional test leaf certificates in ${CERT_CHAINS_NDJSON}..."
+  touch "${CERT_CHAINS_NDJSON}"
+  EXISTING_CHAINS=`wc -l "${CERT_CHAINS_NDJSON}" | awk '{print $1}'`
+  echo "### ${CERT_CHAINS_NDJSON} currently contains ${EXISTING_CHAINS} chains..."
 
   if [ ${EXISTING_CHAINS} -ge ${GEN_TEST_CERTS} ] ; then
-    echo "### ${COMPACT_CHAINS_NDJSON} already contains ${EXISTING_CHAINS} chains, no addition needed..."
+    echo "### ${CERT_CHAINS_NDJSON} already contains ${EXISTING_CHAINS} chains, no addition needed..."
     exit 0
   fi
 
@@ -125,14 +127,14 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
     test -f test-subleaf-${n}.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-subleaf-${n}.privkey.pem 1>/dev/null 2>&1
     test -f test-subleaf-${n}.csr.pem || openssl req -new -sha256 -key test-subleaf-${n}.privkey.pem -subj "/C=AU/ST=Queensland/O=Good Roots Work/OU=Eng/CN=test-subleaf-${n}.example.com" -out test-subleaf-${n}.csr.pem 1>/dev/null 2>&1
     test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
-    cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}\n/' -e 's/-+BEGIN CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE/",/g' >> "${COMPACT_CHAINS_NDJSON}"
+    cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}\n/' -e 's/-+BEGIN CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE/",/g' >> "${CERT_CHAINS_NDJSON}"
     # cleanup to minimise how disk usage/inode usage, we only really need the chains
     rm -f test-subleaf-${n}.pem test-subleaf-${n}.csr.pem test-subleaf-${n}.privkey.pem
   done
 
-  echo "### ${GEN_TEST_CERTS} additional test leaf certificates created and added to ${COMPACT_CHAINS_NDJSON}..."
-  ls -ldh "${COMPACT_CHAINS_NDJSON}"
-  wc -l "${COMPACT_CHAINS_NDJSON}"
+  echo "### ${CERT_CHAINS_NDJSON} now looks like:"
+  ls -ldh "${CERT_CHAINS_NDJSON}"
+  wc -l "${CERT_CHAINS_NDJSON}"
 else
   echo "### ERROR: GEN_TEST_CERTS=${GEN_TEST_CERTS} which we can't understand"
 fi

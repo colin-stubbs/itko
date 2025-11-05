@@ -7,8 +7,8 @@ SCRIPT_EXIST_DIR=$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd )
 cd "${SCRIPT_EXIST_DIR}"
 
 # compact ndjson chain file to support very large numbers of certs/chains.
-COMPACT_CHAINS_NDJSON=${COMPACT_CHAINS_NDJSON:-compact.chains.ndjson}
-# sane default, how many certs to load from ${COMPACT_CHAINS_NDJSON} if it exists.
+CERT_CHAINS_NDJSON=${CERT_CHAINS_NDJSON:-compact.chains.ndjson}
+# sane default, how many certs to load from ${CERT_CHAINS_NDJSON} if it exists.
 LOAD_GENERATED_CERTS=${LOAD_GENERATED_CERTS:-10}
 
 if [ ${LOAD_TEST_DATA} = "true" ] ; then
@@ -55,10 +55,10 @@ if [ ${LOAD_TEST_DATA} = "true" ] ; then
   # attempt to log pre-certs to CT log
   find . -type f -name \*.pre-chain.json -exec curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d '@{}' "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-pre-chain" \; 1>/dev/null 2>&1
 
-  if [ -s "${COMPACT_CHAINS_NDJSON}" ] ; then
-    echo "### Loading ${LOAD_GENERATED_CERTS} certificate chains from ${COMPACT_CHAINS_NDJSON}..."
+  if [ "${LOAD_GENERATED_CERTS}x" != "x" ] && [ "${LOAD_GENERATED_CERTS}" -gt 0 ] && [ -s "${CERT_CHAINS_NDJSON}" ] ; then
+    echo "### Loading ${LOAD_GENERATED_CERTS} certificate chains from ${CERT_CHAINS_NDJSON}..."
     COUNT=1
-    head -n ${LOAD_GENERATED_CERTS} "${COMPACT_CHAINS_NDJSON}" | while read -r line; do
+    head -n ${LOAD_GENERATED_CERTS} "${CERT_CHAINS_NDJSON}" | while read -r line; do
       echo "### Adding certificate chain ${COUNT} to CT log..."
       curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d "${line}" "http://127.0.0.1:${ITKO_SUBMIT_LISTEN_PORT}/ct/v1/add-chain" 1>/dev/null 2>&1
       echo
