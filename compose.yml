@@ -64,15 +64,13 @@ services:
   # It also performs rate limiting. 10 requests per second by default, good to have to for realistic dev/testing purposes
   # It also blocks access to the /int/ path. Because reasons but mostly examples.
   caddy:
-    build:
-      context: ./example/caddy/
     image: colinstubbs/caddy:latest
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
       - ctlog_data:/usr/share/caddy
-      - ./example/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./example/Caddyfile:/etc/caddy/Caddyfile
       # persistent logs if desired
       #- ./logs:/var/log
       #- logs:/var/log
