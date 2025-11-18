@@ -17,11 +17,11 @@ services:
       - CONSUL_CLIENT_INTERFACE=${CONSUL_CLIENT_INTERFACE:-lo}
       - CONSUL_LOCAL_CONFIG=${CONSUL_LOCAL_CONFIG:-{"datacenter":"dev","server":true,"enable_debug":false}}
       # set to true to load test certs from testdata/
-      - LOAD_TEST_DATA=${LOAD_TEST_DATA:-true}
+      - LOAD_TEST_DATA=${LOAD_TEST_DATA:-false}
       # set to 1+ to load generated certificates from testdata/generated/compact.chains.ndjson if it exists, requires LOAD_TEST_DATA to be true.
-      - LOAD_GENERATED_CERTS=${LOAD_GENERATED_CERTS:-10}
+      - LOAD_GENERATED_CERTS=${LOAD_GENERATED_CERTS:-}
       # set to 1+ to auto-generate certificates, NOTE: this is dependent upon LOAD_TEST_DATA being true and will not occur if LOAD_TEST_DATA is false.
-      - GEN_TEST_CERTS=${GEN_TEST_CERTS:-11}
+      - GEN_TEST_CERTS=${GEN_TEST_CERTS:-}
       # Location for generated certs are stored in an NDJSON file. Can be relative if the container will generate it itself using the generate.sh script and LOAD_TEST_DATA is true and GEN_TEST_CERTS is set to 1+.
       # An NDJSON file is used to support very large numbers of certs/chains, e.g 1,000,000+ without the performance impact and inode related limitations that may be present for most file systems.
       # If you've already generated it once (which is recommended as 1,000,000+ certs will take a long time), and want it in a non-default location (for example via volume file mount) simply adjust this variable
@@ -53,7 +53,6 @@ services:
       - ctlog_data:/itko/ct/storage
       # custom test data and/or custom generated script/content
       #- ./integration/testdata:/itko/testdata
-      #- ./integration/testdata/generated:/itko/testdata/generated
       # custom consul config/data if desired
       #- ./consul/config:/consul/config
       #- ./consul/data:/consul/data

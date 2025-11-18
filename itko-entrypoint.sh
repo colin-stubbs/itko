@@ -72,7 +72,7 @@ test -f /itko/ct/config.json || echo '{
   "FlushMs":'${ITKO_FLUSH_MS}'
 }' > /itko/ct/config.json
 
-# itko will fix get-sth file contents provided it starts as an empty JSON file
+# itko will fix get-sth file contents provided it starts as an empty JSON file, otherwise it will error.
 test -s ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth || echo -n '{}' > ${ITKO_ROOT_DIRECTORY}/ct/v1/get-sth
 
 # generate monitor.json files, refer to:

@@ -30,7 +30,7 @@ EXPOSE 80
 COPY itko-entrypoint.sh /usr/local/bin/itko-entrypoint.sh
 COPY ./integration/testdata/ /itko/testdata
 
-HEALTHCHECK --interval=5s --timeout=1s --retries=3 --start-period=5s CMD curl -f http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT:-80}/ct/v1/get-sth | grep '"tree_size":' || exit 1
+HEALTHCHECK --interval=5s --timeout=1s --retries=3 --start-period=30s CMD curl -f http://127.0.0.1:${ITKO_MONITOR_LISTEN_PORT:-80}/ct/v1/get-sth | grep '"tree_size":' || exit 1
 
 ENTRYPOINT ["/usr/local/bin/itko-entrypoint.sh"]
 
