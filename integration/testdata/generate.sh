@@ -41,13 +41,14 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   authorityKeyIdentifier = keyid:always,issuer
   basicConstraints = critical, CA:true, pathlen:10
   keyUsage = critical, digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign, encipherOnly, decipherOnly
+  extendedKeyUsage = OCSPSigning
 
   [ v3_int_ca ]
   subjectKeyIdentifier = 05060708
   authorityKeyIdentifier = keyid:always,issuer
   basicConstraints = critical, CA:true, pathlen:0
   keyUsage = critical, digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign, encipherOnly, decipherOnly
-  extendedKeyUsage = serverAuth,clientAuth
+  extendedKeyUsage = serverAuth, clientAuth, OCSPSigning
 
   [ v3_int_ca_pair ]
   subjectKeyIdentifier = 0a0b0c0d
@@ -107,11 +108,11 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
 
   echo "### Ensuring we a test root CA and intermediate CA..."
   # Create additional fake test root CA and intermediate CA if they do not already exist.
-  test -f test-ca.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-ca.privkey.pem 1>/dev/null 2>&1
-  test -f test-ca.pem || openssl req -new -x509 -config fake-ca.cfg -set_serial 0x0406cafe -days 3650 -extensions v3_ca -inform pem -key test-ca.privkey.pem -out test-ca.pem 1>/dev/null 2>&1
-  test -f test-int-ca.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-int-ca.privkey.pem 1>/dev/null 2>&1
-  test -f test-int-ca.csr.pem || openssl req -new -sha256 -config int-ca.cfg -key test-int-ca.privkey.pem -out test-int-ca.csr.pem 1>/dev/null 2>&1
-  test -f test-int-ca.pem || openssl x509 -req -in test-int-ca.csr.pem -sha256 -extfile fake-ca.cfg -extensions v3_int_ca -CA test-ca.pem -CAkey test-ca.privkey.pem -set_serial 0x53535353 -days 3600 -out test-int-ca.pem 1>/dev/null 2>&1
+  test -f test-ca.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-ca.privkey.pem
+  test -f test-ca.pem || openssl req -new -x509 -config fake-ca.cfg -set_serial 0x0406cafe -days 3650 -extensions v3_ca -inform pem -key test-ca.privkey.pem -out test-ca.pem
+  test -f test-int-ca.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-int-ca.privkey.pem
+  test -f test-int-ca.csr.pem || openssl req -new -sha256 -config int-ca.cfg -key test-int-ca.privkey.pem -out test-int-ca.csr.pem
+  test -f test-int-ca.pem || openssl x509 -req -in test-int-ca.csr.pem -sha256 -extfile fake-ca.cfg -extensions v3_int_ca -CA test-ca.pem -CAkey test-ca.privkey.pem -set_serial 0x53535353 -days 3600 -out test-int-ca.pem
 
   echo "### Ensuring we have at least ${GEN_TEST_CERTS} additional test leaf certificates in ${CERT_CHAINS_NDJSON}..."
   touch "${CERT_CHAINS_NDJSON}"
@@ -126,7 +127,7 @@ if [ "${GEN_TEST_CERTS}x" != "x" ] && [ ${GEN_TEST_CERTS} -ge 1 ]; then
   for n in `seq $((${EXISTING_CHAINS}+1)) ${GEN_TEST_CERTS}`; do
     test -f test-subleaf-${n}.privkey.pem || openssl ecparam -genkey -name prime256v1 -noout -out test-subleaf-${n}.privkey.pem 1>/dev/null 2>&1
     test -f test-subleaf-${n}.csr.pem || openssl req -new -sha256 -key test-subleaf-${n}.privkey.pem -subj "/C=AU/ST=Queensland/O=Good Roots Work/OU=Eng/CN=test-subleaf-${n}.example.com" -out test-subleaf-${n}.csr.pem 1>/dev/null 2>&1
-    test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
+    test -f test-subleaf-${n}.pem || openssl x509 -req -in test-subleaf-${n}.csr.pem -sha256 -extfile int-ca.cfg -extensions v3_user_serverAuth -CA test-int-ca.pem -CAkey test-int-ca.privkey.pem -set_serial 0xdeadbeef -days 2600 -out test-subleaf-${n}.pem 1>/dev/null 2>&1
     cat test-subleaf-${n}.pem test-int-ca.pem test-ca.pem | tr  -d '\n' | sed -E -e 's/^/{"chain":[/' -e 's/$/]}\n/' -e 's/-+BEGIN CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE-+/"/g' -e 's/-+END CERTIFICATE/",/g' >> "${CERT_CHAINS_NDJSON}"
     # cleanup to minimise how disk usage/inode usage, we only really need the chains
     rm -f test-subleaf-${n}.pem test-subleaf-${n}.csr.pem test-subleaf-${n}.privkey.pem

@@ -48,7 +48,7 @@ if [ "${LOAD_TEST_DATA}x" = "truex" ] ; then
     COUNT=1
     head -n ${LOAD_GENERATED_CERTS} "${CERT_CHAINS_NDJSON}" | while read -r line; do
       echo "### Adding certificate chain ${COUNT} to CT log..."
-      curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d "${line}" "${CTLOG_SUBMISSION_BASE_URL}/add-chain" 1>/dev/null 2>&1
+      curl ${CURL_EXTRA_ARGS} -H 'Content-Type: application/json' -d "${line}" "${CTLOG_SUBMISSION_BASE_URL}/add-chain"
       echo
       COUNT=$((COUNT + 1))
     done
