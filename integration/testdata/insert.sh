@@ -6,15 +6,17 @@ SCRIPT_EXIST_DIR=$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd )
 
 cd "${SCRIPT_EXIST_DIR}"
 
+LOAD_TEST_DATA=${LOAD_TEST_DATA:-false}
 # compact ndjson chain file to support very large numbers of certs/chains.
 CERT_CHAINS_NDJSON=${CERT_CHAINS_NDJSON:-compact.chains.ndjson}
 # sane default, how many certs to load from ${CERT_CHAINS_NDJSON} if it exists.
 LOAD_GENERATED_CERTS=${LOAD_GENERATED_CERTS:-}
 
-if [ ${LOAD_TEST_DATA} = "true" ] ; then
+if [ "${LOAD_TEST_DATA}x" = "truex" ] ; then
   echo "### Loading test data..."
 
   # run generate script to generate fresh extra test certs if it exists and is executable.
+  # NOTE: generate.sh will not generate new certs unless ${CERT_CHAINS_NDJSON} is empty or does not have enough.
   test -x generate.sh && ./generate.sh
 
   echo -n "### Waiting for ${CTLOG_NAME} to start and respond to HTTP requests..."

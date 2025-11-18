@@ -7,15 +7,9 @@ services:
     restart: unless-stopped
     environment:
       # Optional: Timezone
-      - TZ=${TZ:-UTC}
+      #- TZ=${TZ:-UTC}
       # Debug mode, set to true to enable more verbose output from the entrypoint script.
-      - DEBUG=${DEBUG:-}
-      # Consul configuration, refer to /usr/local/bin/consul-entrypoint.sh or https://hub.docker.com/_/consul/
-      - CONSUL_BIND_ADDRESS=${CONSUL_BIND_ADDRESS:-127.0.0.1}
-      - CONSUL_BIND_INTERFACE=${CONSUL_BIND_INTERFACE:-lo}
-      - CONSUL_CLIENT_ADDRESS=${CONSUL_CLIENT_ADDRESS:-127.0.0.1}
-      - CONSUL_CLIENT_INTERFACE=${CONSUL_CLIENT_INTERFACE:-lo}
-      - CONSUL_LOCAL_CONFIG=${CONSUL_LOCAL_CONFIG:-{"datacenter":"dev","server":true,"enable_debug":false}}
+      #- DEBUG=${DEBUG:-}
       # set to true to load test certs from testdata/
       - LOAD_TEST_DATA=${LOAD_TEST_DATA:-false}
       # set to 1+ to load generated certificates from testdata/generated/compact.chains.ndjson if it exists, requires LOAD_TEST_DATA to be true.
@@ -28,6 +22,12 @@ services:
       # NOTE: LOAD_TEST_DATA must still be true, and LOAD_GENERATED_CERTS must still be set to 1+ to add any cert chains from this file to the CT log.
       # NOTE: You only need to load test data like this ONCE provided you establish persistent storage for ${ITKO_ROOT_DIRECTORY}. If you're dealing with a large number of certs/chains you will only want to load once.
       - CERT_CHAINS_NDJSON=${CERT_CHAINS_NDJSON:-compact.chains.ndjson}
+      # Consul configuration, refer to /usr/local/bin/consul-entrypoint.sh or https://hub.docker.com/_/consul/
+      - CONSUL_BIND_ADDRESS=${CONSUL_BIND_ADDRESS:-127.0.0.1}
+      - CONSUL_BIND_INTERFACE=${CONSUL_BIND_INTERFACE:-lo}
+      - CONSUL_CLIENT_ADDRESS=${CONSUL_CLIENT_ADDRESS:-127.0.0.1}
+      - CONSUL_CLIENT_INTERFACE=${CONSUL_CLIENT_INTERFACE:-lo}
+      - CONSUL_LOCAL_CONFIG=${CONSUL_LOCAL_CONFIG:-{"datacenter":"dev","server":true,"enable_debug":false}}      
       # Itko configuration, refer to itko-entrypoint.sh
       - ITKO_KV_PATH=${ITKO_KV_PATH:-itko}
       - ITKO_ROOT_DIRECTORY=${ITKO_ROOT_DIRECTORY:-/itko/ct/storage}
