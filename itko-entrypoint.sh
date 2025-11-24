@@ -10,11 +10,6 @@ export CONSUL_CLIENT_ADDRESS=${CONSUL_CLIENT_ADDRESS:-127.0.0.1}
 export CONSUL_CLIENT_INTERFACE=${CONSUL_CLIENT_INTERFACE:-lo}
 export CONSUL_LOCAL_CONFIG=${CONSUL_LOCAL_CONFIG:-{"datacenter":"dev","server":true,"enable_debug":false}}
 
-# set to true to load test certs from testdata/
-export LOAD_TEST_DATA=${LOAD_TEST_DATA:-false}
-# set to 1+ to auto-generate certificates, NOTE: this is dependent upon LOAD_TEST_DATA being true and will not occur if LOAD_TEST_DATA is false.
-export GEN_TEST_CERTS=${GEN_TEST_CERTS:-}
-
 # Itko configuration, refer to the remainder of this script to understand how these are used.
 export ITKO_KV_PATH=${ITKO_KV_PATH:-itko}
 export ITKO_ROOT_DIRECTORY=${ITKO_ROOT_DIRECTORY:-/itko/ct/storage}
